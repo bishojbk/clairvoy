@@ -1,0 +1,10 @@
+src/
+tests/
+website/
+.git/
+.gitignore
+.github/
+tsconfig.json
+vitest.config.ts
+tokenlens-report.html
+*.tsbuildinfo

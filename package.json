@@ -1,0 +1,62 @@
+{
+  "name": "clairvoy",
+  "version": "0.1.0",
+  "description": "Cut your Claude Code costs 20-40%. Analyzes sessions, generates optimized CLAUDE.md rules, and guards against token waste in real time.",
+  "type": "module",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "clairvoy": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-code-cost",
+    "token-optimization",
+    "claude-md",
+    "ai-cost-reduction",
+    "llm-optimization",
+    "claude-code-usage",
+    "token-waste",
+    "ai-coding-cost",
+    "developer-tools",
+    "claude-code-optimizer"
+  ],
+  "author": "Bisoj Biswakarma",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bishojbk/clairvoy.git"
+  },
+  "homepage": "https://github.com/bishojbk/clairvoy",
+  "bugs": {
+    "url": "https://github.com/bishojbk/clairvoy/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

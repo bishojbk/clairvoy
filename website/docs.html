@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>clairvoy docs — Command Reference</title>
+  <meta name="description" content="Complete documentation for clairvoy: the cost optimizer for Claude Code. Installation, command reference, configuration, and FAQ." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script>(function(){var t=localStorage.getItem('clairvoy-theme');if(t==='light'||(t===null&&window.matchMedia('(prefers-color-scheme: light)').matches))document.documentElement.classList.add('light')})()</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --black: #08080c; --surface: #0e0e14; --surface-2: #13131b;
+      --surface-3: #1a1a24; --surface-4: #22222e;
+      --border: rgba(255,255,255,0.06); --border-h: rgba(255,255,255,0.12);
+      --text: #c8c8d8; --text-2: #8888a0; --text-3: #555568; --white: #eeeef4;
+      --red: #ff4d4d; --green: #00c853; --cyan: #00d4ff; --amber: #ffb300; --purple: #a78bfa;
+      --red-dim: rgba(255,77,77,0.12); --green-dim: rgba(0,200,83,0.10);
+      --cyan-dim: rgba(0,212,255,0.08);
+      --mono: 'DM Mono', 'SF Mono', monospace;
+      --sans: 'Outfit', -apple-system, sans-serif;
+      --sidebar-w: 260px; --header-h: 56px;
+      --nav-bg: rgba(8,8,12,0.92); --noise-opacity: 0.02;
+    }
+    html.light {
+      --black: #ffffff; --surface: #f5f5f8; --surface-2: #ebebf0;
+      --surface-3: #e0e0e8; --surface-4: #d5d5de;
+      --border: rgba(0,0,0,0.07); --border-h: rgba(0,0,0,0.12);
+      --text: #3a3a4a; --text-2: #6a6a7a; --text-3: #9a9aaa; --white: #111118;
+      --red: #dc2626; --green: #059669; --cyan: #0891b2; --amber: #d97706; --purple: #7c3aed;
+      --red-dim: rgba(220,38,38,0.08); --green-dim: rgba(5,150,105,0.08);
+      --cyan-dim: rgba(8,145,178,0.06);
+      --nav-bg: rgba(255,255,255,0.92); --noise-opacity: 0;
+    }
+
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body {
+      font-family: var(--sans); background: var(--black); color: var(--text);
+      line-height: 1.6; overflow-x: hidden; -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: rgba(0,212,255,0.2); color: var(--white); }
+    html.light ::selection { background: rgba(8,145,178,0.15); }
+
+    /* Noise */
+    body::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+      opacity: var(--noise-opacity);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+    }
+
+    /* ── HEADER ──────────────────────────── */
+    .hdr {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--header-h); background: var(--nav-bg);
+      backdrop-filter: blur(16px); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 20px;
+    }
+    .hdr__inner {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 1400px; margin: 0 auto;
+    }
+    .hdr__left { display: flex; align-items: center; gap: 16px; }
+    .hdr__brand {
+      font-family: var(--mono); font-size: 14px; font-weight: 500;
+      color: var(--white); display: flex; align-items: center; gap: 8px;
+    }
+    .hdr__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .hdr__sep { width: 1px; height: 20px; background: var(--border-h); }
+    .hdr__label { font-size: 13px; color: var(--text-3); }
+    .hdr__back {
+      font-family: var(--mono); font-size: 12px; color: var(--text-3);
+      display: flex; align-items: center; gap: 4px; transition: color 0.2s;
+    }
+    .hdr__back:hover { color: var(--cyan); }
+    .hdr__back svg { width: 14px; height: 14px; }
+    .hdr__hamburger {
+      display: none; background: none; border: none; color: var(--text); cursor: pointer; padding: 4px;
+    }
+    .hdr__hamburger svg { width: 20px; height: 20px; }
+
+    /* ── SIDEBAR ─────────────────────────── */
+    .side {
+      position: fixed; top: var(--header-h); left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--surface);
+      border-right: 1px solid var(--border); overflow-y: auto;
+      padding: 20px 0 60px; z-index: 90;
+      scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent;
+    }
+    .side::-webkit-scrollbar { width: 4px; }
+    .side::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
+    .side__overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 89; }
+    .side__group { margin-bottom: 4px; }
+    .side__title {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 18px; font-family: var(--mono); font-size: 10px; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3);
+      cursor: pointer; user-select: none; transition: color 0.15s;
+    }
+    .side__title:hover { color: var(--text-2); }
+    .side__title svg { width: 12px; height: 12px; opacity: 0.4; transition: transform 0.15s; }
+    .side__group.collapsed .side__title svg { transform: rotate(-90deg); }
+    .side__group.collapsed .side__links { display: none; }
+    .side__links { list-style: none; padding: 0 0 6px; }
+    .side__link {
+      display: block; padding: 5px 18px 5px 26px;
+      font-size: 13px; color: var(--text-2);
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .side__link:hover { color: var(--white); background: rgba(255,255,255,0.02); }
+    html.light .side__link:hover { background: rgba(0,0,0,0.02); }
+    .side__link.active {
+      color: var(--cyan); border-left-color: var(--cyan);
+      background: var(--cyan-dim); font-weight: 500;
+    }
+
+    /* ── MAIN ────────────────────────────── */
+    .main {
+      margin-left: var(--sidebar-w); margin-top: var(--header-h);
+      min-height: calc(100vh - var(--header-h));
+      padding: 40px 48px 120px; max-width: 860px;
+    }
+
+    /* ── DOC SECTIONS ────────────────────── */
+    .ds { padding: 16px 0 36px; }
+    .ds + .ds { border-top: 1px solid var(--border); }
+    .ds h2 {
+      font-size: 24px; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--white); margin-bottom: 16px;
+    }
+    .ds h3 { font-size: 17px; font-weight: 600; color: var(--white); margin: 28px 0 10px; }
+    .ds h4 {
+      font-family: var(--mono); font-size: 12px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--cyan); margin: 24px 0 8px;
+    }
+    .ds p { font-size: 14px; color: var(--text-2); line-height: 1.75; margin-bottom: 14px; }
+    .ds p strong { color: var(--white); font-weight: 600; }
+    .ds ul, .ds ol { font-size: 14px; color: var(--text-2); line-height: 1.75; padding-left: 20px; margin-bottom: 14px; }
+    .ds li { margin-bottom: 4px; }
+    .ds li strong { color: var(--white); }
+
+    /* Inline code */
+    .ds code:not(pre code) {
+      font-family: var(--mono); font-size: 12px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1px 6px; color: var(--cyan);
+    }
+
+    /* Command signature */
+    .sig {
+      background: var(--surface-2); border: 1px solid var(--border-h);
+      border-radius: 6px; padding: 10px 16px;
+      font-family: var(--mono); font-size: 13px; color: var(--cyan);
+      margin: 10px 0 6px;
+    }
+    .sig__alias { display: block; font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+    /* Code blocks */
+    .cb {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 14px 0 20px;
+    }
+    .cb__bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 10px; color: var(--text-3);
+    }
+    .cb__dot { width: 9px; height: 9px; border-radius: 50%; }
+    .cb__dot--r { background: #ff5f57; } .cb__dot--y { background: #febc2e; } .cb__dot--g { background: #28c840; }
+    .cb__body { padding: 16px; overflow-x: auto; max-width: 100%; }
+    .cb pre {
+      font-family: var(--mono); font-size: 12px; line-height: 1.7;
+      color: var(--text-2); white-space: pre; margin: 0;
+    }
+    .c-p { color: var(--green); } .c-c { color: var(--white); font-weight: 500; }
+    .c-f { color: var(--amber); } .c-d { color: var(--text-3); }
+    .c-cy { color: var(--cyan); } .c-r { color: var(--red); }
+    .c-g { color: var(--green); } .c-o { color: var(--amber); }
+    .c-w { color: var(--white); font-weight: 500; } .c-b { font-weight: 500; }
+
+    /* Tables */
+    .tw { overflow-x: auto; margin: 12px 0 20px; border-radius: 6px; border: 1px solid var(--border); }
+    .tb { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tb th {
+      text-align: left; padding: 10px 14px; font-family: var(--mono);
+      font-size: 10px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-3);
+      background: var(--surface-2); border-bottom: 1px solid var(--border);
+    }
+    .tb td { padding: 8px 14px; color: var(--text-2); border-bottom: 1px solid var(--border); }
+    .tb tr:last-child td { border-bottom: none; }
+    .tb td code {
+      font-size: 11px; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1px 5px; color: var(--cyan); white-space: nowrap;
+    }
+
+    /* Notes */
+    .note {
+      background: var(--cyan-dim); border-left: 3px solid var(--cyan);
+      border-radius: 0 4px 4px 0; padding: 12px 16px;
+      margin: 14px 0 20px; font-size: 13px; color: var(--text-2);
+    }
+    .note strong { color: var(--cyan); }
+    .warn {
+      background: rgba(255,179,0,0.06); border-left: 3px solid var(--amber);
+      border-radius: 0 4px 4px 0; padding: 12px 16px;
+      margin: 14px 0 20px; font-size: 13px; color: var(--text-2);
+    }
+    .warn strong { color: var(--amber); }
+    .new-badge {
+      display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--green-dim); color: var(--green); border: 1px solid var(--green);
+      border-radius: 3px; padding: 1px 6px; margin-left: 8px; vertical-align: middle;
+    }
+
+    /* Achievements */
+    .achs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 16px; }
+    .ach {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 100px; font-size: 11px; color: var(--text-2);
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed; bottom: 20px; right: 20px; z-index: 200;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--surface-2); border: 1px solid var(--border-h);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .theme-toggle:hover { border-color: var(--text-3); }
+    .theme-toggle svg { width: 16px; height: 16px; color: var(--text-2); }
+    .tt-sun { display: none; } .tt-moon { display: block; }
+    html.light .tt-sun { display: block; } html.light .tt-moon { display: none; }
+
+    /* ── RESPONSIVE ──────────────────────── */
+    @media (max-width: 900px) {
+      .main { margin-left: 0; padding: 28px 20px 80px; }
+      .side { transform: translateX(-100%); transition: transform 0.25s; z-index: 95; }
+      .side.open { transform: translateX(0); }
+      .side__overlay.open { display: block; z-index: 94; }
+      .hdr__hamburger { display: block; }
+    }
+    @media (max-width: 600px) {
+      .main { padding: 20px 14px 60px; }
+      .ds h2 { font-size: 20px; }
+      .cb pre { font-size: 11px; }
+      .cb__body { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr__inner">
+    <div class="hdr__left">
+      <button class="hdr__hamburger" id="hamburger" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <a href="index.html" class="hdr__brand"><span class="hdr__dot"></span> clairvoy</a>
+      <div class="hdr__sep"></div>
+      <span class="hdr__label">docs</span>
+    </div>
+    <a href="index.html" class="hdr__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Home
+    </a>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<div class="side__overlay" id="overlay"></div>
+<nav class="side" id="sidebar">
+  <div class="side__group">
+    <div class="side__title">Getting Started <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <ul class="side__links">
+      <li><a class="side__link" href="#install">Installation</a></li>
+      <li><a class="side__link" href="#quickstart">Quick Start</a></li>
+      <li><a class="side__link" href="#how">How It Works</a></li>
+    </ul>
+  </div>
+  <div class="side__group">
+    <div class="side__title">Measure <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <ul class="side__links">
+      <li><a class="side__link" href="#cmd-list">list</a></li>
+      <li><a class="side__link" href="#cmd-analyze">analyze</a></li>
+      <li><a class="side__link" href="#cmd-score">score</a></li>
+      <li><a class="side__link" href="#cmd-replay">replay</a></li>
+      <li><a class="side__link" href="#cmd-trends">trends</a></li>
+      <li><a class="side__link" href="#cmd-live">live</a></li>
+    </ul>
+  </div>
+  <div class="side__group">
+    <div class="side__title">Optimize <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <ul class="side__links">
+      <li><a class="side__link" href="#cmd-optimize">optimize</a></li>
+      <li><a class="side__link" href="#cmd-quickfix">quickfix</a></li>
+      <li><a class="side__link" href="#cmd-doctor">doctor</a></li>
+      <li><a class="side__link" href="#cmd-coach">coach</a></li>
+      <li><a class="side__link" href="#cmd-tips">tips</a></li>
+    </ul>
+  </div>
+  <div class="side__group">
+    <div class="side__title">Protect <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <ul class="side__links">
+      <li><a class="side__link" href="#cmd-guard">guard / unguard</a></li>
+      <li><a class="side__link" href="#cmd-budget">budget caps</a></li>
+      <li><a class="side__link" href="#cmd-pulse">pulse</a></li>
+    </ul>
+  </div>
+  <div class="side__group">
+    <div class="side__title">Compare <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <ul class="side__links">
+      <li><a class="side__link" href="#cmd-compare">compare</a></li>
+      <li><a class="side__link" href="#cmd-benchmark">benchmark</a></li>
+      <li><a class="side__link" href="#cmd-export">export</a></li>
+    </ul>
+  </div>
+  <div class="side__group">
+    <div class="side__title">Reference <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <ul class="side__links">
+      <li><a class="side__link" href="#config">Configuration</a></li>
+      <li><a class="side__link" href="#rules">CLAUDE.md Rules</a></li>
+      <li><a class="side__link" href="#model-routing">Model Routing</a></li>
+      <li><a class="side__link" href="#faq">FAQ</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ── GETTING STARTED ─────────────────── -->
+
+  <section class="ds" id="install">
+    <h2>Installation</h2>
+    <p>Install clairvoy globally from npm:</p>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> terminal</div><div class="cb__body"><pre><span class="c-p">$</span> <span class="c-c">npm install -g clairvoy</span></pre></div></div>
+    <p><strong>Requirements:</strong> Node.js &gt;= 20. Works on macOS, Linux, and Windows.</p>
+    <div class="warn"><strong>Permission error?</strong> Run <code>sudo npm install -g clairvoy</code></div>
+  </section>
+
+  <section class="ds" id="quickstart">
+    <h2>Quick Start</h2>
+    <p>No configuration needed. clairvoy reads your existing Claude Code session logs automatically.</p>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> terminal</div><div class="cb__body"><pre><span class="c-d"># Quick scan (no args = instant overview)</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy</span>
+
+<span class="c-d"># Deep cost analysis</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy analyze</span>
+
+<span class="c-d"># Instant optimization (top 3 rules)</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy quickfix</span>
+
+<span class="c-d"># Full optimization (22 rules)</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy optimize --install</span>
+
+<span class="c-d"># Real-time protection with $10 budget</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy guard --budget 10</span></pre></div></div>
+  </section>
+
+  <section class="ds" id="how">
+    <h2>How It Works</h2>
+    <p>Claude Code writes JSONL session logs to <code>~/.claude/projects/</code>. clairvoy reads these logs, classifies token usage, detects waste patterns, and generates optimization rules.</p>
+    <p><strong>No API keys. No config. Works offline. 100% local.</strong></p>
+    <div class="note"><strong>Privacy:</strong> clairvoy never transmits your data anywhere. Everything runs on your machine.</div>
+  </section>
+
+  <!-- ── MEASURE ─────────────────────────── -->
+
+  <section class="ds" id="cmd-list">
+    <h2>clairvoy list</h2>
+    <div class="sig">clairvoy list [options]<span class="sig__alias">Alias: ls</span></div>
+    <p>Lists recent Claude Code sessions sorted by modification time (newest first).</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th><th>Default</th></tr></thead><tbody>
+      <tr><td><code>-n, --limit &lt;number&gt;</code></td><td>Number of sessions to show</td><td>15</td></tr>
+    </tbody></table></div>
+    <div class="note"><strong>Tip:</strong> Use the <code>#</code> number from list as a shortcut: <code>clairvoy analyze 2</code></div>
+  </section>
+
+  <section class="ds" id="cmd-analyze">
+    <h2>clairvoy analyze</h2>
+    <div class="sig">clairvoy analyze [session] [options]</div>
+    <p>Deep cost breakdown with token attribution, compounding analysis, behavioral pattern detection, and <strong>model routing recommendations</strong>.</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th></tr></thead><tbody>
+      <tr><td><code>--json</code></td><td>Output as JSON</td></tr>
+      <tr><td><code>-a, --all</code></td><td>Analyze all recent sessions</td></tr>
+    </tbody></table></div>
+    <h4>What it shows</h4>
+    <ul>
+      <li><strong>Cost Breakdown</strong> &mdash; cache read/write/output/input with dollar amounts</li>
+      <li><strong>Who Caused What</strong> &mdash; tokens from you, Claude, system, history retransmission</li>
+      <li><strong>Context Growth</strong> &mdash; how context grew from turn 1 to last</li>
+      <li><strong>Output Breakdown</strong> &mdash; code, text, sycophancy, suggestions, meta-commentary, echoing, re-reads</li>
+      <li><strong>Waste Detected</strong> &mdash; file re-reads, filler, verbose output</li>
+      <li><strong>Behavioral Patterns</strong> &mdash; loops, dead-ends, retry storms, search spirals, yak-shaves, tool call spam</li>
+      <li><strong>Model Routing</strong> <span class="new-badge">new</span> &mdash; which turns could have used a cheaper model</li>
+    </ul>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> terminal</div><div class="cb__body"><pre><span class="c-p">$</span> <span class="c-c">clairvoy analyze 2</span>
+
+  <span class="c-cy c-b">COST BREAKDOWN</span>  <span class="c-w c-b">Total: $406.34</span>  <span class="c-d">(763M tokens)</span>
+    <span class="c-cy">Cache read</span>    <span class="c-w">$380.30</span>  <span class="c-d">94%</span>
+    <span class="c-o">Cache write</span>   <span class="c-w"> $17.86</span>  <span class="c-d"> 4%</span>
+    <span class="c-r">Output</span>        <span class="c-w">  $8.15</span>  <span class="c-d"> 2%</span>
+
+  <span class="c-r c-b">WASTE DETECTED</span>
+  <span class="c-r">!!</span> <span class="c-w">Edit called 50x in one turn</span>
+  <span class="c-r">!!</span> <span class="c-w">opportunities-tab.tsx read 21 times</span>
+
+  <span class="c-cy c-b">MODEL ROUTING SUGGESTION</span>
+  <span class="c-d">7 of 12 turns could use a cheaper model</span>
+  <span class="c-w">Potential savings:</span> <span class="c-g">$0.58 (51%)</span></pre></div></div>
+  </section>
+
+  <section class="ds" id="cmd-score">
+    <h2>clairvoy score</h2>
+    <div class="sig">clairvoy score [session] [options]</div>
+    <p>Grades your session efficiency from <strong>S</strong> (best) to <strong>F</strong> (worst) across 5 dimensions.</p>
+    <h4>Scoring dimensions</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Dimension</th><th>Weight</th><th>S (Best)</th><th>F (Worst)</th></tr></thead><tbody>
+      <tr><td><strong>Cache Efficiency</strong></td><td>25%</td><td>&gt;90% cached</td><td>&lt;40%</td></tr>
+      <tr><td><strong>Output Conciseness</strong></td><td>25%</td><td>&gt;95% useful</td><td>&lt;50%</td></tr>
+      <tr><td><strong>Tool Efficiency</strong></td><td>20%</td><td>&gt;85% unique</td><td>&lt;40%</td></tr>
+      <tr><td><strong>Compounding Control</strong></td><td>15%</td><td>&lt;500 tok/turn</td><td>&gt;5000</td></tr>
+      <tr><td><strong>Pattern Cleanliness</strong></td><td>15%</td><td>0 patterns</td><td>&gt;10</td></tr>
+    </tbody></table></div>
+    <h4>Achievements</h4>
+    <div class="achs">
+      <div class="ach">&#127942; Cache Master</div>
+      <div class="ach">&#9889; One Shot</div>
+      <div class="ach">&#128588; Concise Claude</div>
+      <div class="ach">&#129681; Tool Ninja</div>
+      <div class="ach">&#128640; Speed Demon</div>
+    </div>
+  </section>
+
+  <section class="ds" id="cmd-replay">
+    <h2>clairvoy replay</h2>
+    <div class="sig">clairvoy replay [session] [options]</div>
+    <p>Turn-by-turn timeline with timestamps, cost per turn, context growth, and highlighted cost spikes.</p>
+  </section>
+
+  <section class="ds" id="cmd-trends">
+    <h2>clairvoy trends</h2>
+    <div class="sig">clairvoy trends [options]</div>
+    <p>Historical cost trends by day and project.</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th><th>Default</th></tr></thead><tbody>
+      <tr><td><code>--days &lt;number&gt;</code></td><td>Days to look back</td><td>14</td></tr>
+      <tr><td><code>--json</code></td><td>Output as JSON</td><td></td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section class="ds" id="cmd-live">
+    <h2>clairvoy live</h2>
+    <div class="sig">clairvoy live</div>
+    <p>Real-time dashboard monitoring the current session. Shows cost ticking up, context size, cache rate, turn count. Updates every 2 seconds.</p>
+  </section>
+
+  <!-- ── OPTIMIZE ────────────────────────── -->
+
+  <section class="ds" id="cmd-optimize">
+    <h2>clairvoy optimize</h2>
+    <div class="sig">clairvoy optimize [options]</div>
+    <p>Analyzes your recent sessions and generates a CLAUDE.md with rules targeted to <strong>your</strong> waste patterns. 22 rules in the catalog, each with measured savings and break-even analysis.</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th></tr></thead><tbody>
+      <tr><td><code>--dry-run</code></td><td>Preview rules without writing</td></tr>
+      <tr><td><code>--install</code></td><td>Write CLAUDE.md + track for adaptation</td></tr>
+      <tr><td><code>--adapt</code></td><td>Compare before/after, refine rules</td></tr>
+      <tr><td><code>--write</code></td><td>With --adapt, update the file</td></tr>
+      <tr><td><code>-n, --limit &lt;number&gt;</code></td><td>Sessions to analyze (default 15)</td></tr>
+      <tr><td><code>-o, --output &lt;path&gt;</code></td><td>Output path</td></tr>
+    </tbody></table></div>
+    <h4>Recommended workflow</h4>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> terminal</div><div class="cb__body"><pre><span class="c-d"># Preview</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy optimize --dry-run</span>
+
+<span class="c-d"># Install + track</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy optimize --install</span>
+
+<span class="c-d"># Code for a few sessions, then adapt</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy optimize --adapt</span></pre></div></div>
+  </section>
+
+  <section class="ds" id="cmd-quickfix">
+    <h2>clairvoy quickfix <span class="new-badge">new</span></h2>
+    <div class="sig">clairvoy quickfix [options]</div>
+    <p>Instant optimization. Scans 5 most recent sessions, picks the <strong>top 3 most impactful rules</strong>, and installs a minimal CLAUDE.md. Zero decisions, under 5 seconds.</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th></tr></thead><tbody>
+      <tr><td><code>--dry-run</code></td><td>Preview rules without writing</td></tr>
+    </tbody></table></div>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> terminal</div><div class="cb__body"><pre><span class="c-p">$</span> <span class="c-c">clairvoy quickfix</span>
+
+  <span class="c-cy c-b">clairvoy quickfix</span> <span class="c-d">— analyzing 5 sessions</span>
+
+  <span class="c-g">+</span> <span class="c-w">Stop and ask before looping</span> <span class="c-d">(~8% savings)</span>
+  <span class="c-g">+</span> <span class="c-w">Plan before implementing</span> <span class="c-d">(~6% savings)</span>
+  <span class="c-g">+</span> <span class="c-w">Prefer code over explanation</span> <span class="c-d">(~5% savings)</span>
+
+  <span class="c-g">Created CLAUDE.md with top 3 rules</span></pre></div></div>
+    <div class="note"><strong>When to use:</strong> <code>quickfix</code> for speed, <code>optimize --install</code> for the full 22-rule analysis.</div>
+  </section>
+
+  <section class="ds" id="cmd-doctor">
+    <h2>clairvoy doctor</h2>
+    <div class="sig">clairvoy doctor [options]</div>
+    <p>Scans recent sessions for systemic issues. Returns prescriptions with concrete fixes.</p>
+    <h4>What it checks</h4>
+    <ul>
+      <li>Missing CLAUDE.md</li>
+      <li>Long sessions (50+ turns)</li>
+      <li>File re-reads across sessions</li>
+      <li>Sycophancy rate</li>
+      <li>Meta-commentary waste</li>
+      <li>Code echoing waste <span class="new-badge">new</span></li>
+      <li>High tool call sessions (100+) <span class="new-badge">new</span></li>
+      <li>Large context windows (&gt;200K)</li>
+    </ul>
+  </section>
+
+  <section class="ds" id="cmd-coach">
+    <h2>clairvoy coach</h2>
+    <div class="sig">clairvoy coach [session] [options]</div>
+    <p>Analyzes your prompt patterns and shows how specificity correlates with cost.</p>
+    <h4>Specificity score (0&ndash;100)</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Signal</th><th>Points</th></tr></thead><tbody>
+      <tr><td>Contains file paths</td><td>+25</td></tr>
+      <tr><td>Contains line numbers</td><td>+20</td></tr>
+      <tr><td>Contains function names</td><td>+15</td></tr>
+      <tr><td>Contains error messages</td><td>+10</td></tr>
+      <tr><td>Word count &gt; 8</td><td>+10</td></tr>
+      <tr><td>Uses imperative form</td><td>+10</td></tr>
+    </tbody></table></div>
+    <p>Key finding: <strong>Prompts with file paths cost 75% less. Prompts with line numbers cost 89% less.</strong></p>
+  </section>
+
+  <section class="ds" id="cmd-tips">
+    <h2>clairvoy tips</h2>
+    <div class="sig">clairvoy tips</div>
+    <p>Top 5 personalized recommendations from your recent sessions. Quick daily health check.</p>
+  </section>
+
+  <!-- ── PROTECT ─────────────────────────── -->
+
+  <section class="ds" id="cmd-guard">
+    <h2>clairvoy guard / unguard</h2>
+    <div class="sig">clairvoy guard [options]<span class="sig__alias">clairvoy unguard</span></div>
+    <p>Install real-time PostToolUse hooks into Claude Code. Warnings appear inside Claude Code's context, so Claude itself sees them and adjusts behavior.</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th></tr></thead><tbody>
+      <tr><td><code>--dry-run</code></td><td>Preview without installing</td></tr>
+      <tr><td><code>--budget &lt;dollars&gt;</code></td><td>Set session budget cap <span class="new-badge">new</span></td></tr>
+    </tbody></table></div>
+    <h4>What guard watches for</h4>
+    <ul>
+      <li>Context exceeds 150K tokens</li>
+      <li>File re-read 3+ times</li>
+      <li>Session cost approaching threshold</li>
+      <li>Turn count exceeds 50</li>
+      <li>Budget cap exceeded <span class="new-badge">new</span></li>
+    </ul>
+  </section>
+
+  <section class="ds" id="cmd-budget">
+    <h2>Budget Caps <span class="new-badge">new</span></h2>
+    <p>Set a dollar cap per session. Guard warns at 80% usage and gives a hard warning when exceeded.</p>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> terminal</div><div class="cb__body"><pre><span class="c-d"># Install guard with $10 budget</span>
+<span class="c-p">$</span> <span class="c-c">clairvoy guard --budget 10</span>
+
+<span class="c-d"># During your session, you'll see:</span>
+<span class="c-cy">[clairvoy]</span> <span class="c-w">Budget 80% used — $8.00 of $10.00 cap</span>
+<span class="c-cy">[clairvoy]</span> <span class="c-r c-b">BUDGET EXCEEDED — $12.40 spent (over by $2.40)</span></pre></div></div>
+    <p>Budget is persisted in <code>~/.clairvoy/config.json</code> and survives across sessions.</p>
+  </section>
+
+  <section class="ds" id="cmd-pulse">
+    <h2>clairvoy pulse</h2>
+    <div class="sig">clairvoy pulse <span class="sig__alias">Hidden from --help (hook handler)</span></div>
+    <p>Called automatically by guard hooks after every tool call. Outputs a compact status line:</p>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> output</div><div class="cb__body"><pre><span class="c-cy">[clairvoy]</span> <span class="c-w">$4.20</span> | <span class="c-w">23 turns</span> | <span class="c-w">150K ctx</span> | <span class="c-w">3 re-reads</span> | <span class="c-o">budget: 80%</span></pre></div></div>
+    <p>Must complete in &lt;100ms. Uses incremental parsing to avoid re-reading entire session files.</p>
+  </section>
+
+  <!-- ── COMPARE ─────────────────────────── -->
+
+  <section class="ds" id="cmd-compare">
+    <h2>clairvoy compare</h2>
+    <div class="sig">clairvoy compare &lt;session1&gt; &lt;session2&gt; [options]</div>
+    <p>Side-by-side comparison showing deltas for turns, tool calls, tokens, cost, and score.</p>
+  </section>
+
+  <section class="ds" id="cmd-benchmark">
+    <h2>clairvoy benchmark</h2>
+    <div class="sig">clairvoy benchmark &lt;session1&gt; &lt;session2&gt;</div>
+    <p>A/B efficiency comparison. Test the impact of installing CLAUDE.md &mdash; compare a session from before and after.</p>
+  </section>
+
+  <section class="ds" id="cmd-export">
+    <h2>clairvoy export</h2>
+    <div class="sig">clairvoy export [options]</div>
+    <p>Export session data in CSV, JSON, or HTML format.</p>
+    <h4>Options</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Option</th><th>Description</th><th>Default</th></tr></thead><tbody>
+      <tr><td><code>--format &lt;type&gt;</code></td><td>csv, json, or html</td><td>csv</td></tr>
+      <tr><td><code>-o, --output &lt;path&gt;</code></td><td>Output file</td><td>stdout</td></tr>
+      <tr><td><code>-n, --limit &lt;number&gt;</code></td><td>Sessions to export</td><td>20</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <!-- ── REFERENCE ───────────────────────── -->
+
+  <section class="ds" id="config">
+    <h2>Configuration</h2>
+    <p>Guard thresholds and budget are stored in <code>~/.clairvoy/config.json</code>.</p>
+    <div class="tw"><table class="tb"><thead><tr><th>Threshold</th><th>Default</th></tr></thead><tbody>
+      <tr><td>Context warning</td><td>150,000 tokens</td></tr>
+      <tr><td>Context critical</td><td>300,000 tokens</td></tr>
+      <tr><td>Cost warning</td><td>$10.00</td></tr>
+      <tr><td>File re-read threshold</td><td>3 reads</td></tr>
+      <tr><td>Turn count warning</td><td>50 turns</td></tr>
+      <tr><td>Budget cap <span class="new-badge">new</span></td><td>none (set via --budget)</td></tr>
+    </tbody></table></div>
+    <div class="cb"><div class="cb__bar"><span class="cb__dot cb__dot--r"></span><span class="cb__dot cb__dot--y"></span><span class="cb__dot cb__dot--g"></span> ~/.clairvoy/config.json</div><div class="cb__body"><pre>{
+  <span class="c-cy">"thresholds"</span>: {
+    <span class="c-cy">"contextWarningTokens"</span>: <span class="c-o">150000</span>,
+    <span class="c-cy">"contextCriticalTokens"</span>: <span class="c-o">300000</span>,
+    <span class="c-cy">"costWarningDollars"</span>: <span class="c-o">10</span>,
+    <span class="c-cy">"fileReReadThreshold"</span>: <span class="c-o">3</span>,
+    <span class="c-cy">"turnCountWarning"</span>: <span class="c-o">50</span>,
+    <span class="c-cy">"budgetDollars"</span>: <span class="c-o">10</span>
+  }
+}</pre></div></div>
+  </section>
+
+  <section class="ds" id="rules">
+    <h2>CLAUDE.md Rules</h2>
+    <p><code>clairvoy optimize</code> selects from a catalog of <strong>22 rules</strong> based on your detected waste patterns. Each rule has estimated savings and break-even turns.</p>
+    <h4>Rule categories</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Category</th><th>Rules</th><th>Examples</th></tr></thead><tbody>
+      <tr><td><strong>Output reduction</strong></td><td>8</td><td>No sycophancy, no trailing summaries, no code echoing, no option lists</td></tr>
+      <tr><td><strong>Tool efficiency</strong></td><td>6</td><td>Track file reads, targeted reads, grep before read, batch operations</td></tr>
+      <tr><td><strong>Behavioral</strong></td><td>6</td><td>Stop before looping, compact early, plan before coding, narrow search first</td></tr>
+      <tr><td><strong>Prompt quality</strong></td><td>2</td><td>Include file paths, paste exact errors</td></tr>
+    </tbody></table></div>
+    <div class="note"><strong>Rule cost:</strong> ~324 tokens/turn. Pay for themselves in 2-5 turns based on eliminated waste.</div>
+  </section>
+
+  <section class="ds" id="model-routing">
+    <h2>Model Routing <span class="new-badge">new</span></h2>
+    <p>After <code>clairvoy analyze</code>, the output now includes model routing recommendations. It identifies turns that were "simple" enough for a cheaper model.</p>
+    <h4>How turns are classified</h4>
+    <div class="tw"><table class="tb"><thead><tr><th>Classification</th><th>Criteria</th><th>Recommendation</th></tr></thead><tbody>
+      <tr><td><strong>Simple</strong></td><td>&le;3 tool calls, &lt;500 output tokens, no Edit/Write</td><td>Use Haiku</td></tr>
+      <tr><td><strong>Medium</strong></td><td>&le;8 tool calls, &lt;2000 output tokens</td><td>Use Sonnet</td></tr>
+      <tr><td><strong>Complex</strong></td><td>Everything else</td><td>Keep Opus</td></tr>
+    </tbody></table></div>
+    <p>Real example: 7 of 12 turns in a session were simple &mdash; <strong>51% cost savings</strong> with model routing.</p>
+  </section>
+
+  <section class="ds" id="faq">
+    <h2>FAQ</h2>
+
+    <h3>Does clairvoy send my data anywhere?</h3>
+    <p>No. 100% local. It reads <code>~/.claude/projects/</code> and never transmits anything.</p>
+
+    <h3>Does it work with all Claude Code plans?</h3>
+    <p>Yes &mdash; Free, Pro, Max, and API. Cost numbers shown are API-equivalent pricing.</p>
+
+    <h3>Will it slow down Claude Code?</h3>
+    <p>The guard hook targets &lt;100ms per tool call. It uses incremental parsing (only reads new bytes since last check) to stay fast. You won't notice it during normal use.</p>
+
+    <h3>How accurate are the token counts?</h3>
+    <p><strong>Cost numbers are exact</strong> &mdash; they come from the API usage fields in Claude's session logs. <strong>Waste category breakdowns are estimates</strong> &mdash; the classifier uses a ~4 characters/token heuristic to categorize output tokens into sycophancy, meta-commentary, etc. The total cost is precise; the per-category split is approximate.</p>
+
+    <h3>What do the dollar amounts mean on Max/Pro plans?</h3>
+    <p>The costs shown are <strong>API-equivalent pricing</strong> &mdash; what your tokens would cost at Anthropic's pay-per-token rates. On Max/Pro, you're not billed per token, but these numbers tell you how efficiently you're using your allowance. Higher costs = faster rate limit hits.</p>
+
+    <h3>Does it work on Windows?</h3>
+    <p>It should work on Windows with Node.js &gt;= 20. Terminal colors work best on Windows Terminal or VS Code terminal. The <code>live</code> command uses <code>fs.watch</code> which may behave slightly differently on Windows.</p>
+
+    <h3>Can I use it with Cursor or other tools?</h3>
+    <p>Currently Claude Code only. Other tool support may come in the future.</p>
+
+    <h3>How is this different from ccusage?</h3>
+    <p>ccusage shows you what you spent. clairvoy tells you <strong>how to spend less</strong> &mdash; it generates CLAUDE.md rules, installs guard hooks, coaches your prompts, and measures whether the optimization actually worked.</p>
+  </section>
+
+</main>
+
+<!-- THEME TOGGLE -->
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+  <svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+</button>
+
+<script>
+(function() {
+  'use strict';
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('overlay');
+  var hamburger = document.getElementById('hamburger');
+  var links = document.querySelectorAll('.side__link');
+  var titles = document.querySelectorAll('.side__title');
+  var sections = document.querySelectorAll('.ds');
+
+  // Mobile toggle
+  function openSide() { sidebar.classList.add('open'); overlay.classList.add('open'); }
+  function closeSide() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+  hamburger.addEventListener('click', function() { sidebar.classList.contains('open') ? closeSide() : openSide(); });
+  overlay.addEventListener('click', closeSide);
+  links.forEach(function(l) { l.addEventListener('click', function() { if (window.innerWidth <= 900) closeSide(); }); });
+
+  // Collapse toggle
+  titles.forEach(function(t) { t.addEventListener('click', function() { this.parentElement.classList.toggle('collapsed'); }); });
+
+  // Scroll spy
+  var currentId = null;
+  function updateActive() {
+    var best = null;
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (sections[i].getBoundingClientRect().top <= window.innerHeight * 0.35) { best = sections[i]; break; }
+    }
+    if (best && best.id !== currentId) {
+      currentId = best.id;
+      links.forEach(function(l) {
+        l.classList.toggle('active', l.getAttribute('href') === '#' + best.id);
+      });
+      // Expand parent group
+      var active = sidebar.querySelector('.side__link.active');
+      if (active) {
+        var g = active.closest('.side__group');
+        if (g && g.classList.contains('collapsed')) g.classList.remove('collapsed');
+      }
+    }
+  }
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+
+  // Smooth scroll
+  links.forEach(function(l) {
+    l.addEventListener('click', function(e) {
+      e.preventDefault();
+      var t = document.getElementById(this.getAttribute('href').slice(1));
+      if (t) window.scrollTo({ top: t.offsetTop - 70, behavior: 'smooth' });
+    });
+  });
+
+  // Theme toggle
+  var toggle = document.getElementById('theme-toggle');
+  toggle.addEventListener('click', function() {
+    document.documentElement.classList.toggle('light');
+    localStorage.setItem('clairvoy-theme', document.documentElement.classList.contains('light') ? 'light' : 'dark');
+  });
+})();
+</script>
+</body>
+</html>
