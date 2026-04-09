@@ -201,13 +201,48 @@ export function formatReport(breakdown: TokenBreakdown): string {
     lines.push("");
   }
 
-  // Savings estimate
-  if (breakdown.estimatedSavingsPercent > 0) {
-    lines.push(chalk.bold("  POTENTIAL SAVINGS"));
+  // Proven savings — only waste we can measure directly
+  // Re-reads: exact duplicate file reads with known token counts
+  // Output waste: pattern-matched text (sycophancy, meta-commentary, echoing)
+  // Redundant tools: exact same tool+args called twice
+  const provenWaste = breakdown.estimatedSavingsDollars;
+  const provenReReadTokens = breakdown.warnings
+    .filter((w) => w.message.includes("re-reads"))
+    .reduce((sum, w) => sum + w.tokensWasted, 0);
+
+  // Behavioral patterns are flagged but NOT counted as proven savings
+  // They indicate problems but the exact dollar waste is an estimate
+  const hasPatterns = detectedPatterns.length > 0;
+
+  if (provenWaste > 0.01 || hasPatterns) {
+    lines.push(chalk.bold("  SAVINGS OPPORTUNITY"));
     lines.push(chalk.dim(`  ${"─".repeat(56)}`));
-    lines.push(chalk.green(`  ~${breakdown.estimatedSavingsPercent}% token reduction possible by eliminating waste`));
-    lines.push(chalk.green(`  ~$${breakdown.estimatedSavingsDollars.toFixed(2)} savings on this session`));
-    lines.push(`  ${chalk.dim("Run")} ${chalk.cyan("clairvoy optimize")} ${chalk.dim("to generate an optimized CLAUDE.md")}`);
+
+    if (provenWaste > 0.001 || provenReReadTokens > 0) {
+      // Re-reads have outsized impact: each re-read adds tokens that compound across all future turns
+      const avgTurnsRemaining = Math.max(1, breakdown.session.turns.length / 2);
+      const compoundedReReadCost = (provenReReadTokens / 1_000_000) * pricing.cacheReadPerMillion * avgTurnsRemaining;
+      const totalProvenImpact = (provenWaste - (provenReReadTokens / 1_000_000) * pricing.cacheReadPerMillion) + compoundedReReadCost;
+
+      lines.push(`  ${chalk.green("Proven waste:")} $${Math.max(provenWaste, totalProvenImpact).toFixed(2)} ${chalk.dim("(measured from actual token data)")}`);
+      if (provenReReadTokens > 0) {
+        lines.push(`  ${chalk.dim("  File re-reads:")} ${provenReReadTokens.toLocaleString()} tokens ${chalk.dim(`(compounds across ${Math.round(avgTurnsRemaining)} remaining turns)`)}`);
+      }
+      for (const w of breakdown.warnings.filter((w) => !w.message.includes("re-reads"))) {
+        lines.push(`  ${chalk.dim("  " + w.message.split("~")[0].trim())}`);
+      }
+    }
+
+    if (hasPatterns) {
+      const patternCount = detectedPatterns.length;
+      const highSev = detectedPatterns.filter((p) => p.severity === "high").length;
+      lines.push("");
+      lines.push(`  ${chalk.yellow("Behavioral issues:")} ${patternCount} patterns detected${highSev > 0 ? chalk.red(` (${highSev} critical)`) : ""}`);
+      lines.push(chalk.dim("  These indicate inefficiency but exact savings depend on workflow changes."));
+    }
+
+    lines.push("");
+    lines.push(`  ${chalk.dim("Run")} ${chalk.cyan("clairvoy optimize --install")} ${chalk.dim("to generate rules that prevent this waste")}`);
     lines.push("");
   }
 
@@ -327,25 +362,40 @@ export function formatSessionList(sessions: SessionInfo[]): string {
 // ---------------------------------------------------------------------------
 
 export function formatSummary(
-  results: Array<{ project: string; cost: number; waste: number; tokens: number }>,
-  totals: { totalCost: number; totalWaste: number; totalTokens: number; totalTurns: number },
+  results: Array<{ project: string; cost: number; waste: number; tokens: number; patternCount?: number }>,
+  totals: { totalCost: number; totalWaste: number; totalTokens: number; totalTurns: number; totalPatterns?: number },
+  dateRange?: { oldest: Date; newest: Date },
 ): string {
   const lines: string[] = [];
 
   lines.push("");
   lines.push(`${chalk.bold.cyan("  clairvoy")}${chalk.dim(` \u2014 summary across ${results.length} sessions`)}`);
+  if (dateRange) {
+    const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const oldest = fmtDate(dateRange.oldest);
+    const newest = fmtDate(dateRange.newest);
+    lines.push(chalk.dim(`  ${oldest} → ${newest}`));
+  }
   lines.push(chalk.dim("─".repeat(60)));
   lines.push("");
   lines.push(`  ${chalk.bold("Total tokens:")}  ${totals.totalTokens.toLocaleString()}`);
   lines.push(`  ${chalk.bold("Total turns:")}   ${totals.totalTurns}`);
-  lines.push(`  ${chalk.bold("Total cost:")}    ${chalk.green(`$${totals.totalCost.toFixed(2)}`)}`);
-  lines.push(`  ${chalk.bold("Total waste:")}   ${chalk.yellow(`$${totals.totalWaste.toFixed(2)}`)} recoverable`);
+  lines.push(`  ${chalk.bold("Total cost:")}    $${totals.totalCost.toFixed(2)}`);
+  if (totals.totalWaste > 0.01) {
+    lines.push(`  ${chalk.bold("Proven waste:")}  ${chalk.yellow(`$${totals.totalWaste.toFixed(2)}`)} ${chalk.dim("(measured: re-reads, sycophancy, meta, echoing)")}`);
+  }
+  if (totals.totalPatterns && totals.totalPatterns > 0) {
+    lines.push(`  ${chalk.bold("Issues found:")}  ${chalk.yellow(`${totals.totalPatterns} behavioral patterns`)} ${chalk.dim("(reverts, retries, loops)")}`);
+  }
   lines.push("");
 
   for (const r of results) {
-    const costStr = `$${r.cost.toFixed(2)}`.padStart(7);
-    const wasteStr = r.waste > 0 ? chalk.yellow(`-$${r.waste.toFixed(2)}`) : chalk.green("clean");
-    lines.push(`  ${costStr}  ${wasteStr}  ${chalk.dim(r.project)}`);
+    const costStr = `$${r.cost.toFixed(2)}`.padStart(8);
+    const parts: string[] = [];
+    if (r.waste > 0.01) parts.push(chalk.yellow(`-$${r.waste.toFixed(2)} waste`));
+    if (r.patternCount && r.patternCount > 0) parts.push(chalk.dim(`${r.patternCount} issues`));
+    const status = parts.length > 0 ? parts.join(", ") : chalk.green("clean");
+    lines.push(`  ${costStr}  ${status}  ${chalk.dim(r.project)}`);
   }
   lines.push("");
 

@@ -7,6 +7,7 @@ import chalk from "chalk";
 import { listSessions } from "../../core/parser/session-discovery.js";
 import { parseSession } from "../../core/parser/session-parser.js";
 import { classifySession } from "../../core/analysis/classifier.js";
+import { detectAllPatterns } from "../../core/analysis/patterns.js";
 import { analyzeModelRouting } from "../../core/analysis/model-router.js";
 import { formatReport, formatCompact, formatSummary } from "../renderers/report-renderer.js";
 import { decodeProjectPath } from "../util/format.js";
@@ -101,7 +102,8 @@ function analyzeAll(json: boolean, limit = 10): void {
   let totalWaste = 0;
   let totalTokens = 0;
   let totalTurns = 0;
-  const results: Array<{ project: string; cost: number; waste: number; tokens: number }> = [];
+  let totalPatterns = 0;
+  const results: Array<{ project: string; cost: number; waste: number; tokens: number; patternCount: number }> = [];
 
   for (const s of sessions) {
     try {
@@ -113,17 +115,25 @@ function analyzeAll(json: boolean, limit = 10): void {
         parsed.totalUsage.totalCacheCreationTokens +
         parsed.totalUsage.totalCacheReadTokens;
 
+      // Only count proven waste (classifier-measured: re-reads, sycophancy, meta, echoing)
+      // Behavioral patterns are flagged but NOT included in dollar totals
       totalCost += breakdown.totalCostDollars;
       totalWaste += breakdown.estimatedSavingsDollars;
       totalTokens += tokens;
       totalTurns += parsed.totalUsage.turnCount;
+
+      // Count behavioral patterns separately for the summary line
+      const patterns = detectAllPatterns(parsed);
+      const patternCount = patterns.length;
 
       results.push({
         project: decodeProjectPath(s.projectPath),
         cost: breakdown.totalCostDollars,
         waste: breakdown.estimatedSavingsDollars,
         tokens,
+        patternCount,
       });
+      totalPatterns += patternCount;
     } catch {
       // Skip sessions that fail to parse
     }
@@ -136,5 +146,9 @@ function analyzeAll(json: boolean, limit = 10): void {
     return;
   }
 
-  console.log(formatSummary(results, { totalCost, totalWaste, totalTokens, totalTurns }));
+  // Compute date range from sessions
+  const dates = sessions.map((s) => s.modifiedAt).sort((a, b) => a.getTime() - b.getTime());
+  const dateRange = dates.length > 0 ? { oldest: dates[0], newest: dates[dates.length - 1] } : undefined;
+
+  console.log(formatSummary(results, { totalCost, totalWaste, totalTokens, totalTurns, totalPatterns }, dateRange));
 }

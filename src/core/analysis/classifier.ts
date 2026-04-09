@@ -285,7 +285,18 @@ export function classifySession(session: ParsedSession): TokenBreakdown {
 
   const wasteTokens = sycophancyTokens + suggestionTokens + metaCommentaryTokens + echoingTokens + reReadWasteTokens;
   const estimatedSavingsPercent = grandTotal > 0 ? (wasteTokens / grandTotal) * 100 : 0;
-  const estimatedSavingsDollars = (wasteTokens / 1_000_000) * pricing.outputPerMillion;
+
+  // Price waste correctly:
+  // - Output waste (sycophancy, meta, echoing) at output rates
+  // - Re-reads at cache-read rates, COMPOUNDED across remaining turns
+  //   (each re-read adds to context, which is retransmitted on every subsequent turn)
+  const outputWasteTokens = sycophancyTokens + suggestionTokens + metaCommentaryTokens + echoingTokens;
+  const outputWasteDollars = (outputWasteTokens / 1_000_000) * pricing.outputPerMillion;
+
+  const avgTurnsRemaining = Math.max(1, session.turns.length / 2);
+  const reReadCompoundedDollars = (reReadWasteTokens / 1_000_000) * pricing.cacheReadPerMillion * avgTurnsRemaining;
+
+  const estimatedSavingsDollars = outputWasteDollars + reReadCompoundedDollars;
 
   // Sort warnings by severity
   const severityOrder = { high: 0, medium: 1, low: 2 };
