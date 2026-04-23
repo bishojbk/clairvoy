@@ -8,7 +8,7 @@
  */
 
 import type { Command } from "commander";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { listSessions } from "../../core/parser/session-discovery.js";
@@ -111,7 +111,7 @@ function runQuickfix(dryRun: boolean): void {
 
   if (alreadyExists) {
     // Append to existing CLAUDE.md instead of overwriting
-    const existing = require("node:fs").readFileSync(claudeMdPath, "utf-8");
+    const existing = readFileSync(claudeMdPath, "utf-8");
     if (existing.includes("clairvoy")) {
       console.log(chalk.yellow("  CLAUDE.md already has clairvoy rules. Run clairvoy optimize --adapt to update."));
       console.log("");
